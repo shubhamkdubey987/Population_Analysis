@@ -12,7 +12,7 @@ st.markdown("An interactive web application built with Streamlit to analyze worl
 @st.cache_data
 def load_and_clean_data():
     # Update this path if your file location changes
-    path = (r'C:/Users/Friend/OneDrive/Desktop/Ecommerce/Population_Analysis/population_by_country_2020.csv')
+    path = ('population_by_country_2020.csv')
     df = pd.read_csv(path, encoding='latin-1')
     
     # Clean broken text encoding characters from headers
