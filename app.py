@@ -11,9 +11,12 @@ st.markdown("An interactive web application built with Streamlit to analyze worl
 # 2. Cached Data Loading & Cleaning Function
 @st.cache_data
 def load_and_clean_data():
-    # Update this path if your file location changes
+    # File name remains exactly as requested
     path = ('population_by_country_2020.csv')
     df = pd.read_csv(path, encoding='latin-1')
+    
+    # Strip whitespace from columns globally
+    df.columns = df.columns.str.strip()
     
     # Clean broken text encoding characters from headers
     df = df.rename(columns={
@@ -60,7 +63,7 @@ with col4:
 
 st.markdown("---")
 
-# 4. Interactive Multiselect Component & Plotting
+# 4. Interactive Multiselect Component & Table
 st.subheader("🔍 Compare Countries Side-by-Side")
 all_countries = sorted(df['Country (or dependency)'].unique())
 
@@ -74,17 +77,80 @@ if selected_countries:
     filtered_df = df[df['Country (or dependency)'].isin(selected_countries)]
     
     # Display clean table data
-    st.dataframe(filtered_df[['Country (or dependency)', 'Population (2020)', 'Yearly Change', 'Density (P/Km2)', 'Med. Age', 'Urban Pop %']])
+    st.dataframe(
+        filtered_df[['Country (or dependency)', 'Population (2020)', 'Yearly Change', 'Density (P/Km2)', 'Med. Age', 'Urban Pop %']],
+        use_container_width=True
+    )
     
-    # Dynamic Population Chart Visualization
-    st.subheader("📈 Population Distribution Chart")
-    fig, ax = plt.subplots(figsize=(8, 4))
-    ax.bar(filtered_df['Country (or dependency)'], filtered_df['Population (2020)'], color='#4F8BF9')
-    ax.set_ylabel("Population Size")
-    ax.set_xlabel("Country")
-    plt.xticks(rotation=45)
-    fig.tight_layout()
+    st.markdown("---")
     
-    st.pyplot(fig)
+    # 5. Visualizations Section
+    st.subheader("📊 Dynamic Data Visualizations")
+    
+    # --- ROW 1: BAR CHARTS ---
+    chart_col1, chart_col2 = st.columns(2)
+    
+    with chart_col1:
+        st.markdown("#### 📈 Population Size Comparison")
+        st.bar_chart(
+            filtered_df,
+            x='Country (or dependency)',
+            y='Population (2020)',
+            color="#4F8BF9"
+        )
+        
+    with chart_col2:
+        st.markdown("#### ⚡ Yearly Growth Rate (%)")
+        st.bar_chart(
+            filtered_df,
+            x='Country (or dependency)',
+            y='Yearly Change',
+            color="#FF4B4B"
+        )
+        
+    st.markdown("---")
+    
+    # --- ROW 2: PIE CHART & HISTOGRAM ---
+    chart_col3, chart_col4 = st.columns(2)
+    
+    with chart_col3:
+        st.markdown("#### 🍕 Population Share Breakdown")
+        # Generate a clean Pie Chart of the selected countries' relative sizes
+        fig_pie, ax_pie = plt.subplots(figsize=(6, 5))
+        ax_pie.pie(
+            filtered_df['Population (2020)'], 
+            labels=filtered_df['Country (or dependency)'], 
+            autopct='%1.1f%%', 
+            startangle=140,
+            colors=['#4F8BF9', '#FF4B4B', '#FFD166', '#06D6A0', '#118AB2', '#073B4C']
+        )
+        ax_pie.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+        fig_pie.patch.set_alpha(0.0)  # Transparent background to match streamlit theme
+        st.pyplot(fig_pie)
+        
+    with chart_col4:
+        st.markdown("#### 📊 Global Median Age Distribution (All Countries)")
+        # Generate a Histogram showing where the world fits on age distribution
+        fig_hist, ax_hist = plt.subplots(figsize=(6, 5))
+        # Filtering out '0' values which represent missing data
+        valid_ages = df[df['Med. Age'] > 0]['Med. Age']
+        ax_hist.hist(valid_ages, bins=15, color='#06D6A0', edgecolor='white', alpha=0.85)
+        ax_hist.set_xlabel("Median Age")
+        ax_hist.set_ylabel("Number of Countries")
+        fig_hist.patch.set_alpha(0.0)  # Transparent background
+        st.pyplot(fig_hist)
+        
+    st.markdown("---")
+    
+    # --- ROW 3: TREND SCATTER CHART ---
+    st.markdown("#### 🎯 Median Age vs. Urbanization Levels")
+    st.scatter_chart(
+        filtered_df,
+        x='Med. Age',
+        y='Urban Pop %',
+        color='Country (or dependency)',
+        size='Population (2020)'
+    )
+
 else:
     st.warning("Please select at least one country out of the dropdown menu to inspect values.")
